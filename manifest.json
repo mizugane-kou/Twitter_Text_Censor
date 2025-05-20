@@ -1,0 +1,15 @@
+{
+    "manifest_version": 3,
+    "name": "Twitter Text Censor",
+    "version": "1.0",
+    "description": "ツイート本文を伏せ字にする拡張機能",
+    "content_scripts": [
+      {
+        "matches": ["*://x.com/*"],
+        "js": ["content.js"],
+        "css": ["style.css"]
+      }
+    ],
+    "permissions": ["activeTab"]
+  }
+  

@@ -1,0 +1,10 @@
+.censored-text {
+    background-color: #000;
+    color: #000;
+    cursor: pointer;
+    user-select: none;
+  }
+  .censored-text:hover {
+    color: #fff;
+  }
+  
