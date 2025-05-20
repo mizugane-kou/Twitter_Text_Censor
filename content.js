@@ -1,11 +1,14 @@
-let mode = "off"; // 'off', 'censor', 'media'
+let mode = "off";
 const modes = ["off", "censor", "media"];
+let toggleButton = null;
 
 function isTimeline() {
   return location.pathname === "/home";
 }
 
 function applyCensorship(container) {
+  if (!isTimeline()) return;
+
   const tweetNodes = container.querySelectorAll('article');
 
   tweetNodes.forEach(tweet => {
@@ -13,7 +16,6 @@ function applyCensorship(container) {
     const mediaNode = tweet.querySelector('div[data-testid="tweetPhoto"]');
 
     if (!textNode) return;
-
     if (textNode.dataset.processed === "true") return;
 
     const originalHTML = textNode.innerHTML;
@@ -46,11 +48,7 @@ function applyCensorship(container) {
   });
 }
 
-function observeTimeline() {
-  if (!isTimeline()) return;
-
-  applyCensorship(document.body);
-
+function observeMutations() {
   const observer = new MutationObserver(mutations => {
     for (const mutation of mutations) {
       for (const node of mutation.addedNodes) {
@@ -68,18 +66,71 @@ function observeTimeline() {
 }
 
 function createToggleButton() {
-  const button = document.createElement("button");
-  button.id = "toggle-mode-button";
-  button.textContent = "表示: OFF";
-  document.body.appendChild(button);
+  if (toggleButton) return;
 
-  button.addEventListener("click", () => {
+  toggleButton = document.createElement("button");
+  toggleButton.id = "toggle-mode-button";
+  document.body.appendChild(toggleButton);
+
+  toggleButton.addEventListener("click", () => {
     const currentIndex = modes.indexOf(mode);
     const nextMode = modes[(currentIndex + 1) % modes.length];
-    mode = nextMode;
-    button.textContent = `表示: ${mode === "off" ? "OFF" : mode === "censor" ? "伏せ字" : "メディアのみ"}`;
+    setMode(nextMode);
+  });
+}
+
+function updateButtonLabel() {
+  if (toggleButton) {
+    toggleButton.textContent = `表示: ${mode === "off" ? "OFF" : mode === "censor" ? "伏せ字" : "メディアのみ"}`;
+  }
+}
+
+function setMode(newMode) {
+  mode = newMode;
+  chrome.storage.local.set({ displayMode: mode });
+  updateButtonLabel();
+  resetCensorship();
+}
+
+function loadModeFromStorage() {
+  chrome.storage.local.get("displayMode", (result) => {
+    const savedMode = result.displayMode;
+    if (modes.includes(savedMode)) {
+      mode = savedMode;
+    } else {
+      mode = "off";
+    }
+    updateButtonLabel();
     resetCensorship();
   });
+}
+
+function removeToggleButton() {
+  if (toggleButton) {
+    toggleButton.remove();
+    toggleButton = null;
+  }
+}
+
+function resetCensorship() {
+  document.querySelectorAll('[data-processed="true"]').forEach(node => {
+    node.dataset.processed = "";
+    node.innerHTML = node.dataset.originalText || node.innerHTML;
+    node.style.display = "";
+    node.classList.remove("censored-text");
+  });
+
+  if (isTimeline()) applyCensorship(document.body);
+}
+
+function handlePageChange() {
+  if (isTimeline()) {
+    createToggleButton();
+    loadModeFromStorage();
+  } else {
+    removeToggleButton();
+    resetCensorship();
+  }
 }
 
 function monitorURLChange(callback) {
@@ -106,23 +157,10 @@ function monitorURLChange(callback) {
   window.addEventListener("popstate", check);
 }
 
-function resetCensorship() {
-  document.querySelectorAll('[data-processed="true"]').forEach(node => {
-    node.dataset.processed = "";
-    node.innerHTML = node.dataset.originalText || node.innerHTML;
-    node.style.display = "";
-    node.classList.remove("censored-text");
-  });
-
-  applyCensorship(document.body);
-}
-
 window.addEventListener("load", () => {
-  createToggleButton();
-  observeTimeline();
+  handlePageChange();
+  observeMutations();
   monitorURLChange(() => {
-    if (isTimeline()) {
-      applyCensorship(document.body);
-    }
+    handlePageChange();
   });
 });
