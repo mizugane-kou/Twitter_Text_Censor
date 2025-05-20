@@ -23,7 +23,7 @@ function applyCensorship(container) {
     textNode.dataset.processed = "true";
 
     if (mode === "censor") {
-      textNode.innerHTML = "■■■■■■■■■■（クリックで表示）";
+      textNode.innerHTML = "■■■■■■■■■■.........";
       textNode.classList.add("censored-text");
       textNode.addEventListener("click", (e) => {
         e.stopPropagation();
