@@ -6,47 +6,53 @@ function isTimeline() {
   return location.pathname === "/home";
 }
 
+
 function applyCensorship(container) {
-  if (!isTimeline()) return;
-
-  const tweetNodes = container.querySelectorAll('article');
-
-  tweetNodes.forEach(tweet => {
-    const textNode = tweet.querySelector('div[data-testid="tweetText"]');
-    const mediaNode = tweet.querySelector('div[data-testid="tweetPhoto"]');
-
-    if (!textNode) return;
-    if (textNode.dataset.processed === "true") return;
-
-    const originalHTML = textNode.innerHTML;
-    textNode.dataset.originalText = originalHTML;
-    textNode.dataset.processed = "true";
-
-    if (mode === "censor") {
-      textNode.innerHTML = "■■■■■■■■■■.........";
-      textNode.classList.add("censored-text");
-      textNode.addEventListener("click", (e) => {
-        e.stopPropagation();
-        textNode.innerHTML = textNode.dataset.originalText;
-        textNode.classList.remove("censored-text");
+    if (!isTimeline()) return;
+  
+    const tweetNodes = container.querySelectorAll('article');
+  
+    tweetNodes.forEach(tweet => {
+      const textNodes = tweet.querySelectorAll('div[data-testid="tweetText"]');
+  
+      textNodes.forEach(textNode => {
+        if (!textNode || textNode.dataset.processed === "true") return;
+  
+        const originalHTML = textNode.innerHTML;
+        textNode.dataset.originalText = originalHTML;
+        textNode.dataset.processed = "true";
+  
+        if (mode === "censor") {
+          textNode.innerHTML = "■■■■■■■■■■.........";
+          textNode.classList.add("censored-text");
+          textNode.addEventListener("click", (e) => {
+            e.stopPropagation();
+            textNode.innerHTML = textNode.dataset.originalText;
+            textNode.classList.remove("censored-text");
+          });
+          tweet.style.display = "";
+        } else if (mode === "media") {
+          const mediaNode = tweet.querySelector('div[data-testid="tweetPhoto"]');
+          if (!mediaNode) {
+            tweet.style.display = "none";
+          } else {
+            textNode.style.display = "none";
+            tweet.style.display = "";
+          }
+        } else {
+          // off
+          textNode.innerHTML = textNode.dataset.originalText;
+          textNode.style.display = "";
+          textNode.classList.remove("censored-text");
+          tweet.style.display = "";
+        }
       });
-      tweet.style.display = "";
-    } else if (mode === "media") {
-      if (!mediaNode) {
-        tweet.style.display = "none";
-      } else {
-        textNode.style.display = "none";
-        tweet.style.display = "";
-      }
-    } else {
-      // off
-      textNode.innerHTML = textNode.dataset.originalText;
-      textNode.style.display = "";
-      textNode.classList.remove("censored-text");
-      tweet.style.display = "";
-    }
-  });
-}
+    });
+  }
+  
+
+
+
 
 function observeMutations() {
   const observer = new MutationObserver(mutations => {
